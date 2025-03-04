@@ -5,6 +5,9 @@ import numpy as np
 from PIL import Image
 import time
 import logging
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from io import BytesIO
 
 # Configure logging
 logging.basicConfig(
@@ -153,6 +156,10 @@ else:
                 st.markdown(f"### Top Ranked Image: {row['Image']}")
                 cols = st.columns(2)
                 
+                # Store images for PDF generation
+                original_image = None
+                processed_image = None
+                
                 # Display original image
                 with cols[0]:
                     st.markdown("**Original Image**")
@@ -193,10 +200,55 @@ else:
                 st.subheader("Top Images Scores")
                 fig = st.bar_chart(df['Score (%)'].head(10))
                 
-                # Download results
+                # Generate PDF report
+                if original_image and processed_image:
+                    buffer = BytesIO()
+                    pdf = canvas.Canvas(buffer, pagesize=letter)
+                    
+                    # Add title
+                    pdf.setFont("Helvetica-Bold", 16)
+                    pdf.drawString(50, 750, f"Image Analysis Report - {row['Image']}")
+                    
+                    # Save images to PDF
+                    original_image_path = "temp_original.jpg"
+                    processed_image_path = "temp_processed.jpg"
+                    
+                    # Convert RGBA to RGB before saving as JPEG
+                    if original_image.mode == 'RGBA':
+                        original_image = original_image.convert('RGB')
+                    if processed_image.mode == 'RGBA':
+                        processed_image = processed_image.convert('RGB')
+                        
+                    original_image.save(original_image_path)
+                    processed_image.save(processed_image_path)
+                    
+                    # Add images
+                    pdf.drawImage(original_image_path, 50, 450, width=250, height=250)
+                    pdf.drawImage(processed_image_path, 300, 450, width=250, height=250)
+                    
+                    # Add metrics
+                    pdf.setFont("Helvetica", 12)
+                    metrics_y = 400
+                    pdf.drawString(50, metrics_y, f"Balance: {row['Balance']:.2f}")
+                    pdf.drawString(50, metrics_y-20, f"Clarity: {row['Clarity']:.2f}")
+                    pdf.drawString(50, metrics_y-40, f"Cognitive: {row['Cognitive']:.2f}")
+                    pdf.drawString(50, metrics_y-60, f"Exciting: {row['Exciting']:.2f}")
+                    pdf.drawString(50, metrics_y-80, f"Focus: {row['Focus']:.2f}")
+                    
+                    pdf.save()
+                    
+                    # Offer PDF download
+                    st.download_button(
+                        label="Download PDF Report",
+                        data=buffer.getvalue(),
+                        file_name="image_analysis_report.pdf",
+                        mime="application/pdf"
+                    )
+                
+                # Download results as CSV
                 csv = df.to_csv(index=False)
                 st.download_button(
-                    label="Download Results",
+                    label="Download Results as CSV",
                     data=csv,
                     file_name="image_analysis_results.csv",
                     mime="text/csv"
