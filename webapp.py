@@ -130,7 +130,6 @@ else:
                     except Exception as e:
                         logger.error(f"Error processing {file.name}: {str(e)}")
                         st.error(f"Error processing {file.name}: {str(e)}")
-            
             if results:
                 logger.info("Generating analysis results")
                 # Convert to DataFrame and sort by Value
@@ -156,7 +155,10 @@ else:
                 # Display original image
                 with cols[0]:
                     st.markdown("**Original Image**")
-                    original_image = Image.open(uploaded_files[0])
+                    # Find index of top scoring image
+                    top_image_name = row['Image']
+                    top_image_idx = next(idx for idx, file in enumerate(uploaded_files) if file.name == top_image_name)
+                    original_image = Image.open(uploaded_files[top_image_idx])
                     st.image(original_image, use_container_width=True)
                 
                 # Display processed image
@@ -180,7 +182,6 @@ else:
                     except Exception as e:
                         logger.error(f"Failed to load processed image: {str(e)}")
                         st.warning(f"Unable to load processed image: {str(e)}")
-                
                 # Display metrics
                 metrics_cols = st.columns(5)
                 metrics_cols[0].metric("Balance", f"{row['Balance']:.2f}")
