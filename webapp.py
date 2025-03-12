@@ -7,7 +7,7 @@ import time
 import logging
 import hashlib
 import re
-
+import io
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
