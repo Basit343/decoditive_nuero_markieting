@@ -156,6 +156,15 @@ def sanitize_filename(filename):
     clean_name = clean_name.strip('_')
     return clean_name
 
+def resize_image(image, max_size=(800, 800)):
+    """Resize image while maintaining aspect ratio"""
+    img = Image.open(image)
+    img.thumbnail(max_size, Image.LANCZOS)
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format=img.format)
+    img_byte_arr.seek(0)
+    return img_byte_arr
+
 if uploaded_files:
     try:
         if len(uploaded_files) > 100:
@@ -213,10 +222,13 @@ if uploaded_files:
                         logger.info(f"Processing image {idx + 1}/{len(new_files)}: {file.name}")
                         
                         try:
+                            # Resize image before sending
+                            resized_file = resize_image(file)
+                            
                             # Sanitize filename and create unique serialized name
                             clean_filename = sanitize_filename(file.name)
                             serialized_name = f"{file_hash}_{clean_filename}"
-                            files = {'file': (serialized_name, file)}
+                            files = {'file': (serialized_name, resized_file)}
                             
                             response = requests.post('https://neurodecoditiveai.com/analyze', files=files, timeout=30)
                             response.raise_for_status()
@@ -252,7 +264,7 @@ if uploaded_files:
                         
                         except requests.exceptions.RequestException as e:
                             logger.error(f"API Error processing {file.name}: {str(e)}")
-                            st.error(f"⚠️ Error processing {file.name}. Please try again later.")
+                            st.error(f"⚠️ Error processing {file.name}. The image may be too large - please try a smaller image.")
                             continue
                         except Exception as e:
                             logger.error(f"Unexpected error processing {file.name}: {str(e)}")
