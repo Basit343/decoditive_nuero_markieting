@@ -6,6 +6,7 @@ from PIL import Image
 import time
 import logging
 import hashlib
+import re
 
 # Configure logging
 logging.basicConfig(
@@ -144,6 +145,17 @@ with st.container():
     uploaded_files = st.file_uploader("📁 Upload Your Images (Maximum 100)", type=['png', 'jpg', 'jpeg'], accept_multiple_files=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
+def sanitize_filename(filename):
+    # Remove special characters and spaces
+    clean_name = re.sub(r'[^\w\-_\.]', '_', filename)
+    # Remove any brackets and their contents
+    clean_name = re.sub(r'\s*\([^)]*\)', '', clean_name)
+    # Replace multiple underscores with single underscore
+    clean_name = re.sub(r'_+', '_', clean_name)
+    # Remove leading/trailing underscores
+    clean_name = clean_name.strip('_')
+    return clean_name
+
 if uploaded_files:
     try:
         if len(uploaded_files) > 100:
@@ -201,7 +213,8 @@ if uploaded_files:
                         logger.info(f"Processing image {idx + 1}/{len(new_files)}: {file.name}")
                         
                         try:
-                            clean_filename = file.name.replace(" ", "")
+                            # Sanitize filename and create unique serialized name
+                            clean_filename = sanitize_filename(file.name)
                             serialized_name = f"{file_hash}_{clean_filename}"
                             files = {'file': (serialized_name, file)}
                             
